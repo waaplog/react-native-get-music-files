@@ -1,7 +1,6 @@
 #import "TurboSongs.h"
 #import <MediaPlayer/MediaPlayer.h>
 
-
 @implementation TurboSongs
 RCT_EXPORT_MODULE()
 
@@ -57,7 +56,7 @@ RCT_EXPORT_METHOD(getAll:(NSDictionary *)options
     NSArray<MPMediaItem *> *sortedMediaItems = [self sortMediaItems:limitedMediaItems byKey: sortBy sortOrder: sortOrder];
     
     for (MPMediaItem *song in sortedMediaItems) {
-        NSDictionary *songDictionary = [NSMutableDictionary dictionary];
+        NSMutableDictionary *songDictionary = [NSMutableDictionary dictionary];
         
         NSString *durationStr = [song valueForProperty: MPMediaItemPropertyPlaybackDuration];
         NSInteger durationInt = [durationStr integerValue];
@@ -65,26 +64,24 @@ RCT_EXPORT_METHOD(getAll:(NSDictionary *)options
         NSURL *assetURL = [song valueForProperty:MPMediaItemPropertyAssetURL];
         AVAsset *asset = [AVAsset assetWithURL:assetURL];
 
-        if ([asset hasProtectedContent] == NO and durationInt >= minSongDuration) {
+        if ([asset hasProtectedContent] == NO && durationInt >= minSongDuration) {
             
-            NSString *title = [song valueForProperty: MPMediaItemPropertyTitle];
-            NSString *albumTitle = [song valueForProperty: MPMediaItemPropertyAlbumTitle];
-            NSString *albumArtist = [song valueForProperty: MPMediaItemPropertyAlbumArtist];
-            NSString *genre = [song valueForProperty: MPMediaItemPropertyGenre]; // filterable
+            NSString *title = [song valueForProperty: MPMediaItemPropertyTitle] ?: @"";
+            NSString *albumTitle = [song valueForProperty: MPMediaItemPropertyAlbumTitle] ?: @"";
+            NSString *albumArtist = [song valueForProperty: MPMediaItemPropertyAlbumArtist] ?: @"";
+            NSString *genre = [song valueForProperty: MPMediaItemPropertyGenre] ?: @"";
             
             MPMediaItemArtwork *artwork = [song valueForProperty: MPMediaItemPropertyArtwork];
 
-            [songDictionary setValue:[NSString stringWithString:assetURL.absoluteString] forKey:@"url"];
-            [songDictionary setValue:[NSString stringWithString:title] forKey:@"title"];
-            [songDictionary setValue:[NSString stringWithString:albumTitle] forKey:@"album"];
-            [songDictionary setValue:[NSString stringWithString:albumArtist] forKey:@"artist"];
-            [songDictionary setValue:[NSNumber numberWithInt:durationInt * 1000] forKey:@"duration"];
-            [songDictionary setValue:[NSString stringWithString:genre] forKey:@"genre"];
+            [songDictionary setValue:assetURL.absoluteString ? : @"" forKey:@"url"];
+            [songDictionary setValue:title forKey:@"title"];
+            [songDictionary setValue:albumTitle forKey:@"album"];
+            [songDictionary setValue:albumArtist forKey:@"artist"];
+            [songDictionary setValue:@(durationInt * 1000) forKey:@"duration"];
+            [songDictionary setValue:genre forKey:@"genre"];
             
             if (artwork != nil) {
                 UIImage *image = [artwork imageWithSize:CGSizeMake(coverQty, coverQty)];
-                // http://www.12qw.ch/2014/12/tooltip-decoding-base64-images-with-chrome-data-url/
-                // http://stackoverflow.com/a/510444/185771
                 NSString *base64 = [NSString stringWithFormat:@"%@%@", @"data:image/jpeg;base64,", [self imageToNSString:image]];
                 [songDictionary setValue:base64 forKey:@"cover"];
             } else {
@@ -102,7 +99,6 @@ RCT_EXPORT_METHOD(getAlbums:(NSDictionary *)options
                   resolve:(RCTPromiseResolveBlock)resolve
                   reject:(RCTPromiseRejectBlock)reject)
 {
-    
     if([MPMediaLibrary authorizationStatus] != MPMediaLibraryAuthorizationStatusAuthorized){
         reject(@"Permission denied",@"Permission denied",0);
         return;
@@ -141,14 +137,13 @@ RCT_EXPORT_METHOD(getAlbums:(NSDictionary *)options
     MPMediaQuery *mediaQuery = [MPMediaQuery albumsQuery]; // run a query on song media type
     [mediaQuery addFilterPredicate:[MPMediaPropertyPredicate predicateWithValue:@(NO)
                        forProperty:MPMediaItemPropertyIsCloudItem]]; // ensure what we retrieve is on device
-    // this is returning all songs no matter what
+
     [mediaQuery addFilterPredicate:[
         MPMediaPropertyPredicate
         predicateWithValue:artist
         forProperty:MPMediaItemPropertyArtist
         comparisonType: MPMediaPredicateComparisonContains
-    ]
-    ];
+    ]];
 
     NSArray *allMediaItems = [mediaQuery items];
     
@@ -162,27 +157,25 @@ RCT_EXPORT_METHOD(getAlbums:(NSDictionary *)options
     NSArray<MPMediaItem *> *sortedMediaItems = [self sortMediaItems:limitedMediaItems byKey: sortBy sortOrder: sortOrder];
   
     for (MPMediaItem *album in sortedMediaItems) {
-        NSDictionary *songDictionary = [NSMutableDictionary dictionary];
+        NSMutableDictionary *songDictionary = [NSMutableDictionary dictionary];
         
         NSURL *assetURL = [album valueForProperty:MPMediaItemPropertyAssetURL];
         AVAsset *asset = [AVAsset assetWithURL:assetURL];
 
         if ([asset hasProtectedContent] == NO) {
             
-            NSString *albumTitle = [album valueForProperty: MPMediaItemPropertyAlbumTitle]; // filterable
-            NSString *albumArtist = [album valueForProperty: MPMediaItemPropertyAlbumArtist]; //
-            NSString *numberOfSongs = [album valueForProperty: MPMediaItemPropertyAlbumTrackCount]; //
+            NSString *albumTitle = [album valueForProperty: MPMediaItemPropertyAlbumTitle] ?: @"";
+            NSString *albumArtist = [album valueForProperty: MPMediaItemPropertyAlbumArtist] ?: @"";
+            NSString *numberOfSongs = [[album valueForProperty: MPMediaItemPropertyAlbumTrackCount] stringValue] ?: @"";
             MPMediaItemArtwork *artwork = [album valueForProperty: MPMediaItemPropertyArtwork];
        
-            [songDictionary setValue:[NSString stringWithString:assetURL.absoluteString] forKey:@"url"];
-            [songDictionary setValue:[NSString stringWithString:albumTitle] forKey:@"album"];
-            [songDictionary setValue:[NSString stringWithString:albumArtist] forKey:@"artist"];
-            [songDictionary setValue:[NSString stringWithString:numberOfSongs] forKey:@"numberOfSongs"];
+            [songDictionary setValue:assetURL.absoluteString ? : @"" forKey:@"url"];
+            [songDictionary setValue:albumTitle forKey:@"album"];
+            [songDictionary setValue:albumArtist forKey:@"artist"];
+            [songDictionary setValue:numberOfSongs forKey:@"numberOfSongs"];
             
             if (artwork != nil) {
                 UIImage *image = [artwork imageWithSize:CGSizeMake(coverQty, coverQty)];
-                // http://www.12qw.ch/2014/12/tooltip-decoding-base64-images-with-chrome-data-url/
-                // http://stackoverflow.com/a/510444/185771
                 NSString *base64 = [NSString stringWithFormat:@"%@%@", @"data:image/jpeg;base64,", [self imageToNSString:image]];
                 [songDictionary setValue:base64 forKey:@"cover"];
             } else {
@@ -208,7 +201,7 @@ RCT_EXPORT_METHOD(search:(NSDictionary *)options
     NSInteger limit = [options objectForKey:@"limit"] ? [options[@"limit"] integerValue] : 20;
     NSInteger offset =  [options objectForKey:@"offset"] ? [options[@"offset"] integerValue] : 0;
     NSInteger coverQty = [options objectForKey:@"coverQuality"] ? [options[@"coverQuality"] integerValue] : 100;
-    NSString *searchBy = options[@"searchBy"];
+    NSString *searchBy = options[@"searchBy"] ?: @"";
     
     id sortOrderValue = [options objectForKey:@"sortOrder"];
 
@@ -254,7 +247,7 @@ RCT_EXPORT_METHOD(search:(NSDictionary *)options
     NSArray<MPMediaItem *> *sortedMediaItems = [self sortMediaItems:limitedMediaItems byKey: sortBy sortOrder: sortOrder];
   
     for (MPMediaItem *song in sortedMediaItems) {
-        NSDictionary *songDictionary = [NSMutableDictionary dictionary];
+        NSMutableDictionary *songDictionary = [NSMutableDictionary dictionary];
         
         NSURL *assetURL = [song valueForProperty:MPMediaItemPropertyAssetURL];
         AVAsset *asset = [AVAsset assetWithURL:assetURL];
@@ -264,24 +257,22 @@ RCT_EXPORT_METHOD(search:(NSDictionary *)options
             NSString *durationStr = [song valueForProperty: MPMediaItemPropertyPlaybackDuration];
             NSInteger durationInt = [durationStr integerValue];
             
-            NSString *title = [song valueForProperty: MPMediaItemPropertyTitle];
-            NSString *albumTitle = [song valueForProperty: MPMediaItemPropertyAlbumTitle];
-            NSString *albumArtist = [song valueForProperty: MPMediaItemPropertyAlbumArtist];
-            NSString *genre = [song valueForProperty: MPMediaItemPropertyGenre]; // filterable
+            NSString *title = [song valueForProperty: MPMediaItemPropertyTitle] ?: @"";
+            NSString *albumTitle = [song valueForProperty: MPMediaItemPropertyAlbumTitle] ?: @"";
+            NSString *albumArtist = [song valueForProperty: MPMediaItemPropertyAlbumArtist] ?: @"";
+            NSString *genre = [song valueForProperty: MPMediaItemPropertyGenre] ?: @"";
             
             MPMediaItemArtwork *artwork = [song valueForProperty: MPMediaItemPropertyArtwork];
 
-            [songDictionary setValue:[NSString stringWithString:assetURL.absoluteString] forKey:@"url"];
-            [songDictionary setValue:[NSString stringWithString:title] forKey:@"title"];
-            [songDictionary setValue:[NSString stringWithString:albumTitle] forKey:@"album"];
-            [songDictionary setValue:[NSString stringWithString:albumArtist] forKey:@"artist"];
-            [songDictionary setValue:[NSNumber numberWithInt:durationInt * 1000] forKey:@"duration"];
-            [songDictionary setValue:[NSString stringWithString:genre] forKey:@"genre"];
+            [songDictionary setValue:assetURL.absoluteString ? : @"" forKey:@"url"];
+            [songDictionary setValue:title forKey:@"title"];
+            [songDictionary setValue:albumTitle forKey:@"album"];
+            [songDictionary setValue:albumArtist forKey:@"artist"];
+            [songDictionary setValue:@(durationInt * 1000) forKey:@"duration"];
+            [songDictionary setValue:genre forKey:@"genre"];
             
             if (artwork != nil) {
                 UIImage *image = [artwork imageWithSize:CGSizeMake(coverQty, coverQty)];
-                // http://www.12qw.ch/2014/12/tooltip-decoding-base64-images-with-chrome-data-url/
-                // http://stackoverflow.com/a/510444/185771
                 NSString *base64 = [NSString stringWithFormat:@"%@%@", @"data:image/jpeg;base64,", [self imageToNSString:image]];
                 [songDictionary setValue:base64 forKey:@"cover"];
             } else {
